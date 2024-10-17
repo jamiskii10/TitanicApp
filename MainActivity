@@ -1,0 +1,87 @@
+package com.example.titanicsurvivalapp;
+
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+public class MainActivity extends AppCompatActivity {
+
+    private EditText editTextPclass, editTextSex, editTextAge, editTextSibSp, editTextParch, editTextFare, editTextEmbarked;
+    private Button buttonPredict;
+    private TextView textViewResult;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        editTextPclass = findViewById(R.id.editTextPclass);
+        editTextSex = findViewById(R.id.editTextSex);
+        editTextAge = findViewById(R.id.editTextAge);
+        editTextSibSp = findViewById(R.id.editTextSibSp);
+        editTextParch = findViewById(R.id.editTextParch);
+        editTextFare = findViewById(R.id.editTextFare);
+        editTextEmbarked = findViewById(R.id.editTextEmbarked);
+        buttonPredict = findViewById(R.id.buttonPredict);
+        textViewResult = findViewById(R.id.textViewResult);
+
+        buttonPredict.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                makePrediction();
+            }
+        });
+    }
+
+    private void makePrediction() {
+        try {
+            int pclass = Integer.parseInt(editTextPclass.getText().toString());
+            int sex = Integer.parseInt(editTextSex.getText().toString());
+            int age = Integer.parseInt(editTextAge.getText().toString());
+            int sibSp = Integer.parseInt(editTextSibSp.getText().toString());
+            int parch = Integer.parseInt(editTextParch.getText().toString());
+            double fare = Double.parseDouble(editTextFare.getText().toString());
+            int embarked = Integer.parseInt(editTextEmbarked.getText().toString());
+
+            PassengerData passengerData = new PassengerData(pclass, sex, age, sibSp, parch, fare, embarked);
+
+            Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl("http://192.168.1.4/5000")
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build();
+            ApiService apiService = retrofit.create(ApiService.class);
+            Call<SurvivalResponse> call = apiService.predictSurvival(passengerData);
+
+            call.enqueue(new Callback<SurvivalResponse>() {
+                @Override
+                public void onResponse(Call<SurvivalResponse> call, Response<SurvivalResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        int survived = response.body().getSurvived();
+                        textViewResult.setText(survived == 1 ? "Survived" : "Did not survive");
+                    } else {
+                        Toast.makeText(MainActivity.this, "Prediction failed", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<SurvivalResponse> call, Throwable t) {
+                    textViewResult.setText("Error: " + t.getMessage());
+                }
+            });
+        } catch (NumberFormatException e) {
+            Toast.makeText(MainActivity.this, "Invalid input", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+}
