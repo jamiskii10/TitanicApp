@@ -1,0 +1,9 @@
+package com.example.titanicsurvivalapp;
+
+public class SurvivalResponse {
+    private int Survived;
+
+    public int getSurvived() {
+        return Survived;
+    }
+}
